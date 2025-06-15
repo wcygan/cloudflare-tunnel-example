@@ -1,0 +1,46 @@
+services:
+  # Rust Axum web application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cloudflare-tunnel-example:latest
+    container_name: cloudflare-tunnel-app
+    restart: unless-stopped
+    networks:
+      - tunnel-network
+    # No port exposure - only accessible through tunnel
+    # ports:
+    #   - "8080:8080"
+    environment:
+      - RUST_LOG=info
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Cloudflare Tunnel
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflare-tunnel
+    restart: unless-stopped
+    command: tunnel run
+    networks:
+      - tunnel-network
+    volumes:
+      - ./cloudflared/config.yml:/etc/cloudflared/config.yml:ro
+      - ./cloudflared/credentials:/etc/cloudflared/credentials:ro
+    environment:
+      - TUNNEL_CONFIG=/etc/cloudflared/config.yml
+    depends_on:
+      app:
+        condition: service_healthy
+
+networks:
+  tunnel-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

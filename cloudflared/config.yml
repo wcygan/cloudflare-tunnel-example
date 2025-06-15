@@ -1,0 +1,29 @@
+# Cloudflare Tunnel configuration
+# This file defines how cloudflared routes traffic to your services
+
+# Tunnel credentials will be mounted from ./credentials/
+tunnel: cloudflare-tunnel-example
+
+# Ingress rules define how to route traffic
+ingress:
+  # Main application route
+  - hostname: hello.example.com
+    service: http://app:8080
+    originRequest:
+      # Disable TLS verification for internal communication
+      noTLSVerify: true
+      # Set timeout for requests
+      connectTimeout: 30s
+      # Keep connections alive
+      keepAliveConnections: 10
+      keepAliveTimeout: 30s
+  
+  # Health check endpoint (optional subdomain)
+  - hostname: health.hello.example.com
+    service: http://app:8080
+    path: /health
+    originRequest:
+      noTLSVerify: true
+  
+  # Catch-all rule (required)
+  - service: http_status:404

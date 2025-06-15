@@ -20,9 +20,9 @@ Thumbs.db
 .env.local
 
 # Cloudflare
-cloudflared/
-*.json
-*.pem
+cloudflared/credentials/
+cloudflared/*.json
+cloudflared/*.pem
 
 # Logs
 *.log

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://deno.land/x/deno/cli/schemas/config-file.v1.json",
+  
+  "tasks": {
+    // Build tasks
+    "build": "docker build -t cloudflare-tunnel-example:latest .",
+    "build:multiarch": "docker buildx build --platform linux/amd64,linux/arm64 -t cloudflare-tunnel-example:latest .",
+    
+    // Container management
+    "up": "docker compose up -d",
+    "down": "docker compose down",
+    "logs": "docker compose logs -f",
+    "ps": "docker compose ps",
+    
+    // Cloudflare tunnel tasks
+    "tunnel:login": "docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:latest tunnel login",
+    "tunnel:create": "docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:latest tunnel create cloudflare-tunnel-example",
+    "tunnel:route": "docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:latest tunnel route dns cloudflare-tunnel-example hello.example.com",
+    "tunnel:delete": "docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:latest tunnel delete cloudflare-tunnel-example",
+    "tunnel:list": "docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:latest tunnel list",
+    
+    // Composite tasks
+    "tunnel:init": "deno task tunnel:login && deno task tunnel:create && deno task tunnel:route",
+    "deploy": "deno task build && deno task up",
+    "destroy": "deno task down && deno task tunnel:delete",
+    
+    // Development tasks
+    "dev": "cargo watch -x run",
+    "test": "cargo test",
+    "lint": "cargo clippy -- -D warnings",
+    "fmt": "cargo fmt",
+    "fmt:check": "cargo fmt -- --check",
+    
+    // Utility tasks
+    "clean": "cargo clean && docker compose down -v",
+    "restart": "deno task down && deno task up"
+  }
+}
