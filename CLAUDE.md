@@ -88,7 +88,8 @@ Client → Cloudflare Edge → Tunnel (outbound QUIC/WSS) → Docker Container (
 
 ### Tunnel Configuration
 - Credentials mounted as volume from `cloudflared/` directory
-- Hostname routing configured in `config.yml` (hostname → service mapping)
+- Hostname routing configured in `config.yml` (halibut.cc → app:8080)
+- Path-based routing handled by Axum (/ → main app, /health → JSON health check)
 - DNS records automatically managed via `cloudflared tunnel route dns`
 
 ### Security Implementation
@@ -207,16 +208,22 @@ tunnel: 90b6148f-e83f-4749-8649-a1cad20715aa
 credentials-file: /etc/cloudflared/credentials/90b6148f-e83f-4749-8649-a1cad20715aa.json
 ```
 
-#### Issue 4: Health subdomain 404 errors
+#### Issue 4: Health endpoint 404 errors
 
-**Problem:** `health.halibut.cc` returns 404 instead of health check
+**Problem:** `/health` endpoint returns 404 instead of health check
 
-**Root Cause:** DNS record not created for health subdomain
+**Root Cause:** Application routing issue or service not properly configured
 
 **Solution:**
 ```bash
-# Add DNS record for health subdomain
-docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:latest tunnel route dns 90b6148f-e83f-4749-8649-a1cad20715aa health.halibut.cc
+# Check application logs for routing issues
+docker logs cloudflare-tunnel-app
+
+# Verify health endpoint works locally
+curl http://localhost:8080/health  # If testing locally
+
+# Check tunnel ingress configuration
+cat cloudflared/config.yml
 ```
 
 ### Verification Steps
@@ -229,12 +236,11 @@ docker logs cloudflare-tunnel | grep "Registered tunnel connection"
 # Should show 4 active connections
 
 # 2. Test endpoints
-curl -I https://hello.halibut.cc
-curl -I https://health.halibut.cc/health
+curl -I https://halibut.cc
+curl -I https://halibut.cc/health
 
 # 3. Verify DNS records
-dig hello.halibut.cc
-dig health.halibut.cc
+dig halibut.cc
 
 # 4. Check container status
 docker ps

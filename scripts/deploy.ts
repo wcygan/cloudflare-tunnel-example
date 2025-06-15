@@ -136,26 +136,16 @@ async function handleTunnelCreation(): Promise<boolean> {
 async function handleDNSRouting(): Promise<boolean> {
   console.log(`${cyan("🌐")} Setting up DNS routing...`);
   
-  // Route main domain
-  const mainResult = await runCommand([
+  // Route primary domain
+  const result = await runCommand([
     "docker", "run", "--rm", 
     "-v", "./cloudflared:/home/nonroot/.cloudflared", 
     "cloudflare/cloudflared:latest", 
-    "tunnel", "route", "dns", "cloudflare-tunnel-example", "hello.halibut.cc"
-  ], "Configuring DNS for hello.halibut.cc");
+    "tunnel", "route", "dns", "cloudflare-tunnel-example", "halibut.cc"
+  ], "Configuring DNS for halibut.cc");
   
-  // Route health domain (use tunnel ID since it may not accept name for this)
-  const healthResult = await runCommand([
-    "docker", "run", "--rm", 
-    "-v", "./cloudflared:/home/nonroot/.cloudflared", 
-    "cloudflare/cloudflared:latest", 
-    "tunnel", "route", "dns", "90b6148f-e83f-4749-8649-a1cad20715aa", "health.halibut.cc"
-  ], "Configuring DNS for health.halibut.cc");
-  
-  // Consider it successful if at least one worked (they might already exist)
-  return mainResult.success || healthResult.success || 
-         (mainResult.error?.includes("already exists") ?? false) || 
-         (healthResult.error?.includes("already exists") ?? false);
+  // Consider it successful if it worked or already exists
+  return result.success || (result.error?.includes("already exists") ?? false);
 }
 
 async function buildAndDeploy(): Promise<boolean> {
@@ -248,8 +238,8 @@ async function main(): Promise<void> {
     if (verifySuccess) {
       console.log(green("\n🎉 Deployment successful!"));
       console.log("Your service is now live at:");
-      console.log("  • https://hello.halibut.cc/");
-      console.log("  • https://health.halibut.cc/health");
+      console.log("  • https://halibut.cc/");
+      console.log("  • https://halibut.cc/health");
     } else {
       console.log(yellow("\n⚠️ Deployment completed but verification failed"));
       console.log("Services may need a moment to start. Try running:");

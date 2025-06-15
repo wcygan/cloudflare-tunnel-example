@@ -9,11 +9,11 @@ During the initial tunnel setup, we encountered and resolved these critical issu
 1. **Tunnel credentials file not found** - Credentials in wrong directory
 2. **Missing origin certificate** - Docker mount configuration incomplete  
 3. **Invalid tunnel configuration** - Using tunnel name instead of ID
-4. **Health subdomain 404 errors** - Missing DNS record
+4. **Health endpoint 404 errors** - DNS or routing issues
 
 All issues have been resolved and both endpoints are now fully operational:
-- ✅ `https://hello.halibut.cc/` - Main application
-- ✅ `https://health.halibut.cc/health` - Health check endpoint
+- ✅ `https://halibut.cc/` - Main application
+- ✅ `https://halibut.cc/health` - Health check endpoint
 
 ## Detailed Issue Resolution
 
@@ -108,7 +108,7 @@ credentials-file: /etc/cloudflared/credentials/90b6148f-e83f-4749-8649-a1cad2071
 - Specify explicit credentials-file path
 - Test configuration before deployment
 
-### Issue 4: Health subdomain 404 errors
+### Issue 4: Health endpoint 404 errors
 
 **Error Message:**
 ```
@@ -116,21 +116,27 @@ HTTP/2 404
 ```
 
 **Root Cause:**
-The DNS record for `health.halibut.cc` was not created during initial tunnel setup, so requests couldn't route to the tunnel.
+The `/health` endpoint may return 404 due to DNS routing issues or application configuration problems.
 
 **Symptoms:**
-- Main domain `hello.halibut.cc` works correctly
-- Health subdomain `health.halibut.cc` returns 404
-- DNS lookups fail for health subdomain
+- Main domain `halibut.cc` works correctly
+- Health endpoint `halibut.cc/health` returns 404
+- DNS or application routing issues
 
 **Solution:**
 ```bash
-# Add DNS record for health subdomain
-docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:latest tunnel route dns 90b6148f-e83f-4749-8649-a1cad20715aa health.halibut.cc
+# Verify DNS is configured correctly
+dig halibut.cc
+
+# Test health endpoint directly
+curl https://halibut.cc/health
+
+# Check application logs
+docker logs cloudflare-tunnel-app
 ```
 
 **Prevention:**
-Ensure all subdomains mentioned in `config.yml` have corresponding DNS records created.
+Ensure the application properly handles the `/health` route and DNS is configured for the primary domain.
 
 ## Verification Checklist
 
@@ -181,23 +187,22 @@ docker logs cloudflare-tunnel | grep "Registered tunnel connection"
 
 ### 5. DNS Records Check
 ```bash
-dig hello.halibut.cc
-dig health.halibut.cc
-# Both should resolve to Cloudflare IP addresses
+dig halibut.cc
+# Should resolve to Cloudflare IP addresses
 ```
 
 ### 6. Endpoint Functionality Check
 ```bash
 # Test main application
-curl -I https://hello.halibut.cc
+curl -I https://halibut.cc
 # Should return: HTTP/2 200
 
 # Test health endpoint
-curl -I https://health.halibut.cc/health
+curl -I https://halibut.cc/health
 # Should return: HTTP/2 200
 
 # Test health endpoint content
-curl https://health.halibut.cc/health
+curl https://halibut.cc/health
 # Should return JSON: {"status":"healthy","service":"cloudflare-tunnel-example","timestamp":"..."}
 ```
 
@@ -228,18 +233,20 @@ tunnel: 90b6148f-e83f-4749-8649-a1cad20715aa  # Use tunnel ID, not name
 credentials-file: /etc/cloudflared/credentials/90b6148f-e83f-4749-8649-a1cad20715aa.json
 
 ingress:
-  - hostname: hello.halibut.cc
+  - hostname: halibut.cc
     service: http://app:8080
-  - hostname: health.halibut.cc  
-    service: http://app:8080
+    originRequest:
+      noTLSVerify: true
+      connectTimeout: 30s
+      keepAliveConnections: 10
+      keepAliveTimeout: 30s
   - service: http_status:404
 ```
 
 ### Required DNS Records
 ```bash
-# Both domains must have DNS records pointing to the tunnel
-hello.halibut.cc   -> tunnel.halibut.cc (CNAME)
-health.halibut.cc  -> tunnel.halibut.cc (CNAME)
+# Primary domain must have DNS record pointing to the tunnel
+halibut.cc -> tunnel.halibut.cc (CNAME)
 ```
 
 ## Debugging Commands
@@ -277,8 +284,7 @@ docker exec cloudflare-tunnel-app whoami  # Should show: nonroot
 docker network ls | grep tunnel
 
 # Test DNS resolution
-nslookup hello.halibut.cc
-nslookup health.halibut.cc
+nslookup halibut.cc
 ```
 
 This troubleshooting guide should help resolve similar issues in future tunnel deployments and provide a reference for maintaining the service.

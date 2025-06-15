@@ -7,8 +7,8 @@ credentials-file: /etc/cloudflared/credentials/90b6148f-e83f-4749-8649-a1cad2071
 
 # Ingress rules define how to route traffic
 ingress:
-  # Main application route
-  - hostname: hello.halibut.cc
+  # Main application route - handles both / and /health
+  - hostname: halibut.cc
     service: http://app:8080
     originRequest:
       # Disable TLS verification for internal communication
@@ -18,12 +18,6 @@ ingress:
       # Keep connections alive
       keepAliveConnections: 10
       keepAliveTimeout: 30s
-  
-  # Health check endpoint (optional subdomain)
-  - hostname: health.halibut.cc
-    service: http://app:8080
-    originRequest:
-      noTLSVerify: true
   
   # Catch-all rule (required)
   - service: http_status:404

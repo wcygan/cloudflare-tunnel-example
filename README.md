@@ -36,7 +36,7 @@ This **smart deployment** handles all edge cases:
 - ✅ Skips login if certificate exists
 - ✅ Skips tunnel creation if tunnel exists
 - ✅ Automatically moves credentials to correct location
-- ✅ Sets up DNS for both domains
+- ✅ Sets up DNS for halibut.cc domain
 - ✅ Builds and deploys containers
 - ✅ Verifies endpoints are working
 
@@ -191,8 +191,8 @@ Permissions-Policy: geolocation=(), microphone=(), camera=()
 ### Tunnel Configuration
 
 The tunnel configuration in `cloudflared/config.yml` defines:
-- Hostname routing (hello.halibut.cc → app:8080)
-- Health check subdomain (health.halibut.cc → app:8080/health)
+- Hostname routing (halibut.cc → app:8080)
+- Path-based routing (/ → main app, /health → health check)
 - Origin request settings (timeouts, keep-alive)
 - Catch-all 404 rule for unmatched requests
 
@@ -214,8 +214,8 @@ deno task fmt:check
 ### Production Testing
 ```bash
 # After deployment, test live endpoints
-curl https://hello.halibut.cc
-curl https://health.halibut.cc
+curl https://halibut.cc
+curl https://halibut.cc/health
 ```
 
 ## 🚨 Troubleshooting
@@ -269,12 +269,11 @@ deno task ps
 ### DNS and Connectivity Issues
 ```bash
 # Verify DNS records are set up
-dig hello.halibut.cc
-dig health.halibut.cc
+dig halibut.cc
 
 # Test endpoints
-curl -I https://hello.halibut.cc
-curl -I https://health.halibut.cc/health
+curl -I https://halibut.cc
+curl -I https://halibut.cc/health
 
 # Check tunnel connections
 docker logs cloudflare-tunnel | grep "Registered tunnel connection"

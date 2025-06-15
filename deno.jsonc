@@ -15,7 +15,7 @@
     // Cloudflare tunnel tasks
     "tunnel:login": "docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:latest tunnel login",
     "tunnel:create": "docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:latest tunnel create cloudflare-tunnel-example",
-    "tunnel:route": "docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:latest tunnel route dns cloudflare-tunnel-example hello.halibut.cc && docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:latest tunnel route dns 90b6148f-e83f-4749-8649-a1cad20715aa health.halibut.cc",
+    "tunnel:route": "docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:latest tunnel route dns cloudflare-tunnel-example halibut.cc",
     "tunnel:delete": "docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:latest tunnel delete cloudflare-tunnel-example",
     "tunnel:list": "docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:latest tunnel list",
     "tunnel:cleanup": "docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:latest tunnel cleanup 90b6148f-e83f-4749-8649-a1cad20715aa",

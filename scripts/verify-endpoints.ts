@@ -20,14 +20,14 @@ interface EndpointTest {
 
 const endpoints: EndpointTest[] = [
   {
-    url: "https://hello.halibut.cc/",
+    url: "https://halibut.cc/",
     name: "Main Application",
     expectedStatus: 200,
     expectedContent: "Hello World",
     timeout: 10000,
   },
   {
-    url: "https://health.halibut.cc/health",
+    url: "https://halibut.cc/health",
     name: "Health Check",
     expectedStatus: 200,
     expectedContent: '"status":"healthy"',

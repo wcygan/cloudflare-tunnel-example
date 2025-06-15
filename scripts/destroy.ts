@@ -103,20 +103,13 @@ async function removeDockerImages(): Promise<boolean> {
 async function removeTunnelAndDNS(): Promise<boolean> {
   console.log(`${cyan("🚇")} Removing tunnel and DNS records...`);
   
-  // Remove DNS records first
+  // Remove DNS record
   await runCommand([
     "docker", "run", "--rm", 
     "-v", "./cloudflared:/home/nonroot/.cloudflared", 
     "cloudflare/cloudflared:latest", 
-    "tunnel", "route", "delete", "hello.halibut.cc"
-  ], "Removing hello.halibut.cc DNS record", true);
-  
-  await runCommand([
-    "docker", "run", "--rm", 
-    "-v", "./cloudflared:/home/nonroot/.cloudflared", 
-    "cloudflare/cloudflared:latest", 
-    "tunnel", "route", "delete", "health.halibut.cc"
-  ], "Removing health.halibut.cc DNS record", true);
+    "tunnel", "route", "delete", "halibut.cc"
+  ], "Removing halibut.cc DNS record", true);
   
   // Clean up tunnel connections
   await runCommand([
