@@ -27,8 +27,8 @@
     
     // Smart deployment commands (recommended)  
     "deploy:full": "deno run --allow-net --allow-run --allow-read --allow-write scripts/deploy.ts",
-    "destroy:full": "deno run --allow-run --allow-read scripts/destroy.ts",
-    "destroy:complete": "deno run --allow-run --allow-read scripts/destroy.ts --full",
+    "destroy:full": "deno run --allow-run --allow-read --allow-write scripts/destroy.ts",
+    "destroy:complete": "deno run --allow-run --allow-read --allow-write scripts/destroy.ts --full",
     
     // Legacy composite tasks (kept for compatibility)
     "tunnel:init": "deno task tunnel:login && deno task tunnel:create && deno task tunnel:route",
