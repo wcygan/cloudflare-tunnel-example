@@ -92,6 +92,7 @@ cloudflare-tunnel-example/
 - `deno task destroy:full` - **Smart cleanup** (preserves tunnel config for redeployment)
 - `deno task destroy:complete` - **Complete removal** (removes tunnel and all credentials)
 - `deno task verify` - **Test endpoints** to ensure deployment is working
+- `deno task diagnose` - **System diagnostics** (checks configuration and provides fixes)
 
 ### Build & Deploy
 - `deno task build` - Build Docker image
@@ -219,6 +220,19 @@ curl https://halibut.cc/health
 ```
 
 ## 🚨 Troubleshooting
+
+### Quick Diagnostics
+
+Run this command first to identify issues:
+```bash
+deno task diagnose
+```
+
+This will check:
+- Tunnel configuration matches
+- DNS records are set up
+- Containers are running
+- Credentials are in the right place
 
 ### Common Tunnel Setup Issues
 
