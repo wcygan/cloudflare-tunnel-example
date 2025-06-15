@@ -1,7 +1,8 @@
 use axum::{
+    extract::Host,
     http::{header, HeaderValue, Request},
     middleware,
-    response::{Html, Json, Response},
+    response::{Html, Json, Response, IntoResponse},
     routing::get,
     Router,
 };
@@ -20,7 +21,7 @@ async fn main() {
         .init();
 
     let app = Router::new()
-        .route("/", get(hello_world))
+        .route("/", get(root_handler))
         .route("/health", get(health_check))
         .layer(
             ServiceBuilder::new()
@@ -40,6 +41,17 @@ async fn main() {
         warn!("Server error: {}", err);
         std::process::exit(1);
     });
+}
+
+async fn root_handler(Host(hostname): Host) -> axum::response::Result<axum::response::Response> {
+    info!("Root handler called with hostname: {}", hostname);
+    if hostname.starts_with("health.") {
+        info!("Routing to health check");
+        Ok(health_check().await.into_response())
+    } else {
+        info!("Routing to hello world");
+        Ok(hello_world().await.into_response())
+    }
 }
 
 async fn hello_world() -> Html<&'static str> {

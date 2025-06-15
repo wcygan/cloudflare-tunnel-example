@@ -41,15 +41,23 @@ deno task build
 
 ### 3. Set Up Cloudflare Tunnel
 
-```bash
-# One-time tunnel setup
-deno task tunnel:init
+**IMPORTANT:** Follow these steps in order for a successful tunnel setup:
 
-# Or step by step:
-deno task tunnel:login    # Authenticate with Cloudflare
-deno task tunnel:create   # Create named tunnel  
-deno task tunnel:route    # Set up DNS routing
+```bash
+# Step 1: Authenticate with Cloudflare
+deno task tunnel:login
+
+# Step 2: Create the tunnel (one-time only)
+deno task tunnel:create
+
+# Step 3: Set up DNS routing for both domains
+deno task tunnel:route
+
+# Alternative: Run all steps at once
+deno task tunnel:init
 ```
+
+**Note:** If you get "tunnel already exists" errors, that's normal - skip to the next step.
 
 ### 4. Deploy
 
@@ -209,6 +217,40 @@ curl https://health.halibut.cc
 
 ## 🚨 Troubleshooting
 
+### Common Tunnel Setup Issues
+
+**Problem: "tunnel credentials file not found"**
+```bash
+# Solution: Check credentials are in the right location
+ls -la cloudflared/credentials/
+# Should show: 90b6148f-e83f-4749-8649-a1cad20715aa.json
+
+# If missing, move credentials file:
+mv cloudflared/*.json cloudflared/credentials/
+```
+
+**Problem: "Cannot determine default origin certificate path"**
+```bash
+# Solution: Ensure cert.pem is mounted correctly
+ls -la cloudflared/cert.pem
+# Should exist and be readable
+
+# Check Docker Compose has both mounts:
+# - ./cloudflared/cert.pem:/home/nonroot/.cloudflared/cert.pem:ro
+# - ./cloudflared/credentials:/etc/cloudflared/credentials:ro
+```
+
+**Problem: "Tunnel connection failed" or exits with code 1**
+```bash
+# Check tunnel configuration uses tunnel ID, not name:
+cat cloudflared/config.yml
+# Should show: tunnel: 90b6148f-e83f-4749-8649-a1cad20715aa
+# Not: tunnel: cloudflare-tunnel-example
+
+# Get your tunnel ID:
+deno task tunnel:list
+```
+
 ### Container Issues
 ```bash
 # Check container logs
@@ -221,16 +263,18 @@ deno task build
 deno task ps
 ```
 
-### Tunnel Issues
+### DNS and Connectivity Issues
 ```bash
-# Verify tunnel status
-deno task tunnel:list
-
-# Check DNS configuration
+# Verify DNS records are set up
 dig hello.halibut.cc
+dig health.halibut.cc
 
-# Check cloudflared logs
-deno task logs cloudflared
+# Test endpoints
+curl -I https://hello.halibut.cc
+curl -I https://health.halibut.cc/health
+
+# Check tunnel connections
+docker logs cloudflare-tunnel | grep "Registered tunnel connection"
 ```
 
 ### Network Issues

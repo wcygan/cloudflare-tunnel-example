@@ -26,15 +26,28 @@ deno task logs
 ```
 
 ### Cloudflare Tunnel Management
-```bash
-# One-time tunnel setup (auth + DNS)
-deno task tunnel:init
 
-# Individual tunnel operations
-deno task tunnel:login    # Authenticate with Cloudflare
-deno task tunnel:create   # Create named tunnel
-deno task tunnel:route    # Set up DNS routing
+**CRITICAL:** Follow these steps in exact order for successful tunnel setup:
+
+```bash
+# Step 1: Authenticate with Cloudflare (creates cert.pem)
+deno task tunnel:login
+
+# Step 2: Create named tunnel (creates credentials JSON)
+deno task tunnel:create
+
+# Step 3: Set up DNS routing for both domains
+deno task tunnel:route
+
+# Alternative: One-time complete setup
+deno task tunnel:init
 ```
+
+**Important Configuration Requirements:**
+- Tunnel credentials must be in `cloudflared/credentials/` directory
+- Certificate must be in `cloudflared/cert.pem`
+- Config must use tunnel ID, not tunnel name
+- Docker Compose must mount both credentials and certificate
 
 ### Deployment Workflow
 ```bash
@@ -141,3 +154,114 @@ The `MILESTONES.md` file serves as the single source of truth for:
 - **Knowledge capture**: Lessons learned throughout development
 
 **Important**: Always update `MILESTONES.md` when completing checkpoints to maintain accurate project status for future development sessions.
+
+## Troubleshooting Guide
+
+### Common Tunnel Setup Issues
+
+This section documents the exact issues we encountered and their solutions:
+
+#### Issue 1: "tunnel credentials file not found"
+
+**Problem:** Cloudflared container exits with error "tunnel credentials file not found"
+
+**Root Cause:** Tunnel credentials JSON file was in wrong location (`cloudflared/` instead of `cloudflared/credentials/`)
+
+**Solution:**
+```bash
+# Move credentials to correct location
+mv cloudflared/*.json cloudflared/credentials/
+
+# Verify location
+ls -la cloudflared/credentials/
+# Should show: 90b6148f-e83f-4749-8649-a1cad20715aa.json
+```
+
+#### Issue 2: "Cannot determine default origin certificate path"
+
+**Problem:** Cloudflared fails with "No file cert.pem in [~/.cloudflared ~/.cloudflare-warp]"
+
+**Root Cause:** Origin certificate not mounted in Docker container
+
+**Solution:** Update `docker-compose.yml` volumes section:
+```yaml
+volumes:
+  - ./cloudflared/config.yml:/etc/cloudflared/config.yml:ro
+  - ./cloudflared/credentials:/etc/cloudflared/credentials:ro
+  - ./cloudflared/cert.pem:/home/nonroot/.cloudflared/cert.pem:ro  # ADD THIS LINE
+```
+
+#### Issue 3: Invalid tunnel configuration
+
+**Problem:** Tunnel config validation fails with ingress rule errors
+
+**Root Cause:** Using tunnel name instead of tunnel ID in `config.yml`
+
+**Solution:** Update `cloudflared/config.yml`:
+```yaml
+# WRONG:
+tunnel: cloudflare-tunnel-example
+
+# CORRECT:
+tunnel: 90b6148f-e83f-4749-8649-a1cad20715aa
+credentials-file: /etc/cloudflared/credentials/90b6148f-e83f-4749-8649-a1cad20715aa.json
+```
+
+#### Issue 4: Health subdomain 404 errors
+
+**Problem:** `health.halibut.cc` returns 404 instead of health check
+
+**Root Cause:** DNS record not created for health subdomain
+
+**Solution:**
+```bash
+# Add DNS record for health subdomain
+docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:latest tunnel route dns 90b6148f-e83f-4749-8649-a1cad20715aa health.halibut.cc
+```
+
+### Verification Steps
+
+After fixing tunnel issues, verify with these commands:
+
+```bash
+# 1. Check tunnel connections
+docker logs cloudflare-tunnel | grep "Registered tunnel connection"
+# Should show 4 active connections
+
+# 2. Test endpoints
+curl -I https://hello.halibut.cc
+curl -I https://health.halibut.cc/health
+
+# 3. Verify DNS records
+dig hello.halibut.cc
+dig health.halibut.cc
+
+# 4. Check container status
+docker ps
+# Both cloudflare-tunnel-app and cloudflare-tunnel should be running
+```
+
+### File Structure Requirements
+
+For tunnel to work correctly, ensure this exact structure:
+
+```
+cloudflared/
+├── config.yml                                    # Tunnel ingress rules
+├── cert.pem                                      # Origin certificate
+├── credentials/
+│   └── 90b6148f-e83f-4749-8649-a1cad20715aa.json # Tunnel credentials
+└── README.md
+```
+
+### Docker Compose Requirements
+
+Ensure these volume mounts are present:
+
+```yaml
+cloudflared:
+  volumes:
+    - ./cloudflared/config.yml:/etc/cloudflared/config.yml:ro
+    - ./cloudflared/credentials:/etc/cloudflared/credentials:ro
+    - ./cloudflared/cert.pem:/home/nonroot/.cloudflared/cert.pem:ro
+```

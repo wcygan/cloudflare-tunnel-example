@@ -2,7 +2,8 @@
 # This file defines how cloudflared routes traffic to your services
 
 # Tunnel credentials will be mounted from ./credentials/
-tunnel: cloudflare-tunnel-example
+tunnel: 90b6148f-e83f-4749-8649-a1cad20715aa
+credentials-file: /etc/cloudflared/credentials/90b6148f-e83f-4749-8649-a1cad20715aa.json
 
 # Ingress rules define how to route traffic
 ingress:
@@ -21,7 +22,6 @@ ingress:
   # Health check endpoint (optional subdomain)
   - hostname: health.halibut.cc
     service: http://app:8080
-    path: /health
     originRequest:
       noTLSVerify: true
   

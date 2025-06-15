@@ -28,6 +28,7 @@ services:
     volumes:
       - ./cloudflared/config.yml:/etc/cloudflared/config.yml:ro
       - ./cloudflared/credentials:/etc/cloudflared/credentials:ro
+      - ./cloudflared/cert.pem:/home/nonroot/.cloudflared/cert.pem:ro
     environment:
       - TUNNEL_CONFIG=/etc/cloudflared/config.yml
     depends_on:
