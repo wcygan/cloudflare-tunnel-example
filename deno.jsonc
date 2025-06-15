@@ -23,9 +23,10 @@
     // Verification
     "verify": "deno run --allow-net scripts/verify-endpoints.ts",
     
-    // Streamlined deployment commands
-    "deploy:full": "deno task tunnel:init && deno task build && deno task up && deno task verify",
-    "destroy:full": "deno task down && deno task clean && echo 'Tunnel configuration preserved. Use tunnel:delete to remove tunnel entirely.'",
+    // Smart deployment commands (recommended)  
+    "deploy:full": "deno run --allow-net --allow-run --allow-read --allow-write scripts/deploy.ts",
+    "destroy:full": "deno run --allow-run --allow-read scripts/destroy.ts",
+    "destroy:complete": "deno run --allow-run --allow-read scripts/destroy.ts --full",
     
     // Legacy composite tasks (kept for compatibility)
     "tunnel:init": "deno task tunnel:login && deno task tunnel:create && deno task tunnel:route",

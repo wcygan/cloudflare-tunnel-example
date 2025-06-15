@@ -28,22 +28,26 @@ A production-ready Rust Axum web service exposed through Cloudflare Tunnel with 
 git clone <repository-url>
 cd cloudflare-tunnel-example
 
-# Deploy everything (tunnel + app + verification)
+# Deploy everything (smart, handles existing tunnels)
 deno task deploy:full
 ```
 
-This single command will:
-1. Set up Cloudflare tunnel authentication
-2. Create tunnel and DNS records
-3. Build Docker image
-4. Start containers
-5. Verify endpoints are working
+This **smart deployment** handles all edge cases:
+- ✅ Skips login if certificate exists
+- ✅ Skips tunnel creation if tunnel exists
+- ✅ Automatically moves credentials to correct location
+- ✅ Sets up DNS for both domains
+- ✅ Builds and deploys containers
+- ✅ Verifies endpoints are working
 
-### 🧹 One-Command Cleanup
+### 🧹 Smart Cleanup Options
 
 ```bash
-# Stop and clean up everything
+# Stop containers, keep tunnel config (recommended)
 deno task destroy:full
+
+# Remove everything including tunnel and credentials
+deno task destroy:complete
 ```
 
 ### 📋 Step-by-Step (Alternative)
@@ -83,9 +87,10 @@ cloudflare-tunnel-example/
 
 ## 🔧 Available Commands
 
-### 🚀 Streamlined Commands (Recommended)
-- `deno task deploy:full` - **Complete deployment** (tunnel + build + deploy + verify)
-- `deno task destroy:full` - **Complete cleanup** (stop + clean, preserves tunnel config)
+### 🚀 Smart Commands (Recommended)
+- `deno task deploy:full` - **Smart deployment** (handles existing tunnels gracefully)
+- `deno task destroy:full` - **Smart cleanup** (preserves tunnel config for redeployment)
+- `deno task destroy:complete` - **Complete removal** (removes tunnel and all credentials)
 - `deno task verify` - **Test endpoints** to ensure deployment is working
 
 ### Build & Deploy
