@@ -22,52 +22,44 @@ A production-ready Rust Axum web service exposed through Cloudflare Tunnel with 
 - [Deno](https://deno.land/) for task automation
 - Cloudflare account with a domain
 
-### 1. Clone and Build
+### ⚡ One-Command Deployment
 
 ```bash
 git clone <repository-url>
 cd cloudflare-tunnel-example
 
-# Build the Docker image
-deno task build
+# Deploy everything (tunnel + app + verification)
+deno task deploy:full
 ```
 
-### 2. Test Locally
+This single command will:
+1. Set up Cloudflare tunnel authentication
+2. Create tunnel and DNS records
+3. Build Docker image
+4. Start containers
+5. Verify endpoints are working
+
+### 🧹 One-Command Cleanup
 
 ```bash
-# Test without tunnel (local only)
-./test-local.sh
+# Stop and clean up everything
+deno task destroy:full
 ```
 
-### 3. Set Up Cloudflare Tunnel
+### 📋 Step-by-Step (Alternative)
 
-**IMPORTANT:** Follow these steps in order for a successful tunnel setup:
+If you prefer manual control or troubleshooting:
 
 ```bash
-# Step 1: Authenticate with Cloudflare
-deno task tunnel:login
-
-# Step 2: Create the tunnel (one-time only)
-deno task tunnel:create
-
-# Step 3: Set up DNS routing for both domains
-deno task tunnel:route
-
-# Alternative: Run all steps at once
+# 1. Set up Cloudflare tunnel (one-time)
 deno task tunnel:init
-```
 
-**Note:** If you get "tunnel already exists" errors, that's normal - skip to the next step.
+# 2. Build and deploy
+deno task build
+deno task up
 
-### 4. Deploy
-
-```bash
-# Deploy the full stack
-deno task deploy
-
-# Your service is now live at:
-# https://hello.halibut.cc
-# https://health.halibut.cc
+# 3. Verify deployment
+deno task verify
 ```
 
 ## 📁 Project Structure
@@ -91,6 +83,11 @@ cloudflare-tunnel-example/
 
 ## 🔧 Available Commands
 
+### 🚀 Streamlined Commands (Recommended)
+- `deno task deploy:full` - **Complete deployment** (tunnel + build + deploy + verify)
+- `deno task destroy:full` - **Complete cleanup** (stop + clean, preserves tunnel config)
+- `deno task verify` - **Test endpoints** to ensure deployment is working
+
 ### Build & Deploy
 - `deno task build` - Build Docker image
 - `deno task build:multiarch` - Multi-architecture build (amd64/arm64)
@@ -99,12 +96,13 @@ cloudflare-tunnel-example/
 - `deno task down` - Stop all services
 
 ### Tunnel Management
-- `deno task tunnel:init` - Complete tunnel setup
+- `deno task tunnel:init` - Complete tunnel setup (login + create + route)
 - `deno task tunnel:login` - Authenticate with Cloudflare
 - `deno task tunnel:create` - Create tunnel
-- `deno task tunnel:route` - Configure DNS routing
+- `deno task tunnel:route` - Configure DNS routing for both domains
 - `deno task tunnel:list` - List active tunnels
 - `deno task tunnel:delete` - Delete tunnel
+- `deno task tunnel:cleanup` - Clean up tunnel connections
 
 ### Development
 - `deno task dev` - Run with hot reload (cargo watch)

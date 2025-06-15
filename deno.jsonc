@@ -15,11 +15,19 @@
     // Cloudflare tunnel tasks
     "tunnel:login": "docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:latest tunnel login",
     "tunnel:create": "docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:latest tunnel create cloudflare-tunnel-example",
-    "tunnel:route": "docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:latest tunnel route dns cloudflare-tunnel-example hello.halibut.cc",
+    "tunnel:route": "docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:latest tunnel route dns cloudflare-tunnel-example hello.halibut.cc && docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:latest tunnel route dns 90b6148f-e83f-4749-8649-a1cad20715aa health.halibut.cc",
     "tunnel:delete": "docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:latest tunnel delete cloudflare-tunnel-example",
     "tunnel:list": "docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:latest tunnel list",
+    "tunnel:cleanup": "docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:latest tunnel cleanup 90b6148f-e83f-4749-8649-a1cad20715aa",
     
-    // Composite tasks
+    // Verification
+    "verify": "deno run --allow-net scripts/verify-endpoints.ts",
+    
+    // Streamlined deployment commands
+    "deploy:full": "deno task tunnel:init && deno task build && deno task up && deno task verify",
+    "destroy:full": "deno task down && deno task clean && echo 'Tunnel configuration preserved. Use tunnel:delete to remove tunnel entirely.'",
+    
+    // Legacy composite tasks (kept for compatibility)
     "tunnel:init": "deno task tunnel:login && deno task tunnel:create && deno task tunnel:route",
     "deploy": "deno task build && deno task up",
     "destroy": "deno task down && deno task tunnel:delete",
