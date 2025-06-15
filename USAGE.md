@@ -127,7 +127,7 @@ deno task build
 deno task tunnel:list
 
 # Verify DNS configuration
-dig hello.example.com
+dig hello.halibut.cc
 
 # Check cloudflared logs
 deno task logs cloudflared
@@ -144,7 +144,7 @@ docker network inspect cloudflare-tunnel-example_tunnel-network
 
 ## Next Steps
 
-- Configure your domain in `cloudflared/config.yml`
+- ✅ Configure your domain in `cloudflared/config.yml` (now using halibut.cc)
 - Set up WAF rules in Cloudflare dashboard
 - Add monitoring and alerting
 - Scale horizontally with multiple app replicas

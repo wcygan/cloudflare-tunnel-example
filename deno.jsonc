@@ -15,7 +15,7 @@
     // Cloudflare tunnel tasks
     "tunnel:login": "docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:latest tunnel login",
     "tunnel:create": "docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:latest tunnel create cloudflare-tunnel-example",
-    "tunnel:route": "docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:latest tunnel route dns cloudflare-tunnel-example hello.example.com",
+    "tunnel:route": "docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:latest tunnel route dns cloudflare-tunnel-example hello.halibut.cc",
     "tunnel:delete": "docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:latest tunnel delete cloudflare-tunnel-example",
     "tunnel:list": "docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared:latest tunnel list",
     

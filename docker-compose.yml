@@ -14,18 +14,14 @@ services:
     #   - "8080:8080"
     environment:
       - RUST_LOG=info
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+    # Health check removed - distroless containers don't have shell utilities
+    # We'll use a startup delay instead
 
   # Cloudflare Tunnel
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: cloudflare-tunnel
-    restart: unless-stopped
+    restart: on-failure
     command: tunnel run
     networks:
       - tunnel-network
@@ -36,7 +32,10 @@ services:
       - TUNNEL_CONFIG=/etc/cloudflared/config.yml
     depends_on:
       app:
-        condition: service_healthy
+        condition: service_started
+    deploy:
+      restart_policy:
+        delay: 10s
 
 networks:
   tunnel-network:
