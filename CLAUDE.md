@@ -89,3 +89,55 @@ Client → Cloudflare Edge → Tunnel (outbound QUIC/WSS) → Docker Container (
 **Targets**: <5s startup, <50MB memory, >10k req/s static content, <15MB image size
 
 The Tokio event loop + Axum combination can handle ~100k req/s on single core for static responses. Cloudflare edge caching reduces origin load significantly. Horizontal scaling achieved by running multiple `app` container replicas behind the same tunnel.
+
+## Milestone-Driven Development
+
+### Before Starting Work
+
+**ALWAYS** review `MILESTONES.md` to understand:
+- Current project phase and overall progress
+- Which checkpoints are completed vs pending
+- Dependencies between milestones
+- Next immediate actions and priorities
+
+### Milestone Review Process
+
+1. **Check Current Status**: Look at the "Current Status Overview" section in `MILESTONES.md`
+2. **Identify Next Checkpoint**: Find the next pending checkpoint with no unmet dependencies
+3. **Review Deliverables**: Understand exactly what needs to be completed
+4. **Validate Success Criteria**: Ensure you know how to measure completion
+5. **Check for Blockers**: Address any identified blockers before starting work
+
+### When Completing Milestones
+
+1. **Update Milestone Status**: Mark checkpoint as completed in `MILESTONES.md`
+2. **Document Actual Effort**: Record time spent vs estimated effort
+3. **Record Lessons Learned**: Note any challenges or insights for future reference
+4. **Update Next Steps**: Specify immediate actions needed for the next checkpoint
+5. **Review Dependencies**: Ensure dependent checkpoints can now proceed
+
+### Milestone Completion Workflow
+
+```bash
+# After completing work on a checkpoint:
+# 1. Test all deliverables meet success criteria
+# 2. Update MILESTONES.md with completion status
+# 3. Commit changes with clear milestone reference
+git add .
+git commit -m "Complete Checkpoint X.Y: [Milestone Name]
+
+- All deliverables implemented and tested
+- Success criteria validated
+- [Brief summary of key accomplishments]"
+```
+
+### Progress Tracking
+
+The `MILESTONES.md` file serves as the single source of truth for:
+- **Project timeline**: What should be done when
+- **Dependency management**: What must be completed before starting new work
+- **Risk tracking**: Current blockers and mitigation strategies
+- **Effort estimation**: Actual vs planned time for future planning
+- **Knowledge capture**: Lessons learned throughout development
+
+**Important**: Always update `MILESTONES.md` when completing checkpoints to maintain accurate project status for future development sessions.
