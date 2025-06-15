@@ -24,6 +24,9 @@ cloudflared/credentials/
 cloudflared/*.json
 cloudflared/*.pem
 
+# Tunnel configuration state
+.tunnel-config.json
+
 # Logs
 *.log
 logs/

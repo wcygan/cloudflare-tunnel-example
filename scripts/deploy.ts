@@ -56,7 +56,7 @@ async function checkFileExists(path: string): Promise<boolean> {
   }
 }
 
-async function ensureCredentialsInCorrectLocation(): Promise<void> {
+async function ensureCredentialsInCorrectLocation(): Promise<string | null> {
   console.log(`${cyan("🔧")} Checking credentials location...`);
   
   // Check if credentials directory exists
@@ -66,6 +66,8 @@ async function ensureCredentialsInCorrectLocation(): Promise<void> {
     await Deno.mkdir("cloudflared/credentials", { recursive: true });
     console.log(`  ${green("✓")} Created credentials directory`);
   }
+  
+  let movedTunnelId: string | null = null;
   
   // Look for JSON files in cloudflared/ root and move them to credentials/
   try {
@@ -79,12 +81,15 @@ async function ensureCredentialsInCorrectLocation(): Promise<void> {
         if (!targetExists) {
           await Deno.rename(sourcePath, targetPath);
           console.log(`  ${green("✓")} Moved ${entry.name} to credentials/`);
+          movedTunnelId = entry.name.replace(".json", "");
         }
       }
     }
   } catch (err) {
     console.log(`  ${yellow("⚠")} Could not check for credentials files: ${err.message}`);
   }
+  
+  return movedTunnelId;
 }
 
 async function handleTunnelLogin(): Promise<boolean> {
@@ -108,7 +113,7 @@ async function handleTunnelLogin(): Promise<boolean> {
   return result.success;
 }
 
-async function handleTunnelCreation(): Promise<boolean> {
+async function handleTunnelCreation(): Promise<string | null> {
   // First, check if tunnel already exists
   const listResult = await runCommand([
     "docker", "run", "--rm", 
@@ -117,9 +122,19 @@ async function handleTunnelCreation(): Promise<boolean> {
     "tunnel", "list"
   ], "Checking existing tunnels");
   
-  if (listResult.success && listResult.output.includes("cloudflare-tunnel-example")) {
-    console.log(`${green("✓")} Tunnel 'cloudflare-tunnel-example' already exists`);
-    return true;
+  if (listResult.success) {
+    // Check for existing tunnel and get its ID
+    const lines = listResult.output.split('\n');
+    for (const line of lines) {
+      if (line.includes("cloudflare-tunnel-example")) {
+        const match = line.match(/^([a-f0-9-]+)\s+cloudflare-tunnel-example/);
+        if (match) {
+          const tunnelId = match[1];
+          console.log(`${green("✓")} Tunnel 'cloudflare-tunnel-example' already exists (${tunnelId})`);
+          return tunnelId;
+        }
+      }
+    }
   }
   
   console.log(`${cyan("🚇")} Creating tunnel...`);
@@ -130,18 +145,37 @@ async function handleTunnelCreation(): Promise<boolean> {
     "tunnel", "create", "cloudflare-tunnel-example"
   ], "Creating tunnel");
   
-  return createResult.success;
+  if (createResult.success) {
+    // Extract tunnel ID from output
+    const match = createResult.output.match(/Created tunnel ([a-f0-9-]+)/);
+    if (match) {
+      return match[1];
+    }
+  }
+  
+  return null;
 }
 
-async function handleDNSRouting(): Promise<boolean> {
+async function updateTunnelConfig(tunnelId: string): Promise<boolean> {
+  console.log(`${cyan("🔧")} Updating tunnel configuration...`);
+  
+  const updateResult = await runCommand([
+    "deno", "run", "--allow-read", "--allow-write", 
+    "scripts/update-config.ts", tunnelId
+  ], "Updating config.yml with tunnel ID");
+  
+  return updateResult.success;
+}
+
+async function handleDNSRouting(tunnelId: string): Promise<boolean> {
   console.log(`${cyan("🌐")} Setting up DNS routing...`);
   
-  // Route primary domain
+  // Route primary domain using tunnel ID
   const result = await runCommand([
     "docker", "run", "--rm", 
     "-v", "./cloudflared:/home/nonroot/.cloudflared", 
     "cloudflare/cloudflared:latest", 
-    "tunnel", "route", "dns", "cloudflare-tunnel-example", "halibut.cc"
+    "tunnel", "route", "dns", tunnelId, "halibut.cc"
   ], "Configuring DNS for halibut.cc");
   
   // Consider it successful if it worked or already exists
@@ -196,7 +230,7 @@ async function main(): Promise<void> {
   
   try {
     // Step 1: Ensure credentials are in the right place
-    await ensureCredentialsInCorrectLocation();
+    const movedTunnelId = await ensureCredentialsInCorrectLocation();
     
     // Step 2: Handle tunnel authentication  
     const loginSuccess = await handleTunnelLogin();
@@ -207,32 +241,44 @@ async function main(): Promise<void> {
     }
     
     // Step 3: Handle tunnel creation
-    const createSuccess = await handleTunnelCreation();
-    if (!createSuccess) {
+    const tunnelId = await handleTunnelCreation();
+    if (!tunnelId) {
       console.log(red("\n❌ Tunnel creation failed"));
       Deno.exit(1);
     }
     
     // Step 4: Ensure credentials are moved after creation
-    await ensureCredentialsInCorrectLocation();
+    const newMovedId = await ensureCredentialsInCorrectLocation();
+    const activeTunnelId = newMovedId || tunnelId;
     
-    // Step 5: Set up DNS routing
-    const dnsSuccess = await handleDNSRouting();
-    if (!dnsSuccess) {
-      console.log(yellow("\n⚠️ DNS routing partially failed, but continuing..."));
+    // Step 5: Update config with correct tunnel ID
+    const configSuccess = await updateTunnelConfig(activeTunnelId);
+    if (!configSuccess) {
+      console.log(yellow("\n⚠️ Failed to update config, but continuing..."));
     }
     
-    // Step 6: Build and deploy
+    // Step 6: Set up DNS routing
+    const dnsSuccess = await handleDNSRouting(activeTunnelId);
+    if (!dnsSuccess) {
+      console.log(yellow("\n⚠️ DNS routing failed"));
+      console.log("This might be because the DNS record already exists.");
+    }
+    
+    // Step 7: Build and deploy
     const deploySuccess = await buildAndDeploy();
     if (!deploySuccess) {
       console.log(red("\n❌ Build or deployment failed"));
       Deno.exit(1);
     }
     
-    // Step 7: Wait for services
+    // Step 8: Wait for services
     await waitForServices();
     
-    // Step 8: Verify deployment
+    // Step 9: Wait for DNS propagation
+    console.log(`${cyan("⏳")} Waiting for DNS propagation...`);
+    await new Promise(resolve => setTimeout(resolve, 10000)); // 10 second wait
+    
+    // Step 10: Verify deployment
     const verifySuccess = await verifyDeployment();
     
     if (verifySuccess) {
@@ -244,6 +290,8 @@ async function main(): Promise<void> {
       console.log(yellow("\n⚠️ Deployment completed but verification failed"));
       console.log("Services may need a moment to start. Try running:");
       console.log("  deno task verify");
+      console.log("\nOr check diagnostics:");
+      console.log("  deno task diagnose");
     }
     
   } catch (error) {
@@ -251,6 +299,7 @@ async function main(): Promise<void> {
     console.log("\nFor troubleshooting, see:");
     console.log("  • TROUBLESHOOTING.md");
     console.log("  • deno task logs");
+    console.log("  • deno task diagnose");
     Deno.exit(1);
   }
 }

@@ -100,8 +100,50 @@ async function removeDockerImages(): Promise<boolean> {
   return true;
 }
 
+async function getActiveTunnelId(): Promise<string | null> {
+  // Check for tunnel config file first
+  try {
+    const configData = await Deno.readTextFile(".tunnel-config.json");
+    const config = JSON.parse(configData);
+    return config.activeTunnelId || null;
+  } catch {
+    // No config file
+  }
+  
+  // Check credentials directory
+  try {
+    const tunnelIds: string[] = [];
+    for await (const entry of Deno.readDir("cloudflared/credentials")) {
+      if (entry.isFile && entry.name.endsWith(".json")) {
+        tunnelIds.push(entry.name.replace(".json", ""));
+      }
+    }
+    
+    if (tunnelIds.length === 1) {
+      return tunnelIds[0];
+    } else if (tunnelIds.length > 1) {
+      console.log(`${yellow("⚠")} Multiple tunnel credentials found. Using most recent.`);
+      return tunnelIds[tunnelIds.length - 1];
+    }
+  } catch {
+    // No credentials directory
+  }
+  
+  return null;
+}
+
 async function removeTunnelAndDNS(): Promise<boolean> {
   console.log(`${cyan("🚇")} Removing tunnel and DNS records...`);
+  
+  // Get tunnel ID
+  const tunnelId = await getActiveTunnelId();
+  
+  if (!tunnelId) {
+    console.log(`${red("✗")} No tunnel ID found to delete`);
+    return false;
+  }
+  
+  console.log(`${cyan("→")} Working with tunnel ID: ${tunnelId}`);
   
   // Remove DNS record
   await runCommand([
@@ -116,16 +158,26 @@ async function removeTunnelAndDNS(): Promise<boolean> {
     "docker", "run", "--rm", 
     "-v", "./cloudflared:/home/nonroot/.cloudflared", 
     "cloudflare/cloudflared:latest", 
-    "tunnel", "cleanup", "90b6148f-e83f-4749-8649-a1cad20715aa"
+    "tunnel", "cleanup", tunnelId
   ], "Cleaning up tunnel connections", true);
   
-  // Delete the tunnel
-  const deleteResult = await runCommand([
+  // Delete the tunnel by ID first, then by name if that fails
+  let deleteResult = await runCommand([
     "docker", "run", "--rm", 
     "-v", "./cloudflared:/home/nonroot/.cloudflared", 
     "cloudflare/cloudflared:latest", 
-    "tunnel", "delete", "cloudflare-tunnel-example"
-  ], "Deleting tunnel");
+    "tunnel", "delete", "-f", tunnelId
+  ], "Deleting tunnel by ID", true);
+  
+  if (!deleteResult.success) {
+    // Try by name
+    deleteResult = await runCommand([
+      "docker", "run", "--rm", 
+      "-v", "./cloudflared:/home/nonroot/.cloudflared", 
+      "cloudflare/cloudflared:latest", 
+      "tunnel", "delete", "-f", "cloudflare-tunnel-example"
+    ], "Deleting tunnel by name");
+  }
   
   return deleteResult.success;
 }

@@ -2,8 +2,8 @@
 # This file defines how cloudflared routes traffic to your services
 
 # Tunnel credentials will be mounted from ./credentials/
-tunnel: 90b6148f-e83f-4749-8649-a1cad20715aa
-credentials-file: /etc/cloudflared/credentials/90b6148f-e83f-4749-8649-a1cad20715aa.json
+tunnel: 3f883609-705a-4854-99b3-4b3f5623c18f
+credentials-file: /etc/cloudflared/credentials/3f883609-705a-4854-99b3-4b3f5623c18f.json
 
 # Ingress rules define how to route traffic
 ingress:
