@@ -50,11 +50,16 @@ export async function getCredentialTunnelIds(): Promise<string[]> {
  * Returns the tunnel ID if credentials were moved
  */
 export async function ensureCredentialsInCorrectLocation(): Promise<string | null> {
+  const { logStep, logSuccess, logWarning } = await import("./logging.ts");
+  
+  logStep("Checking credentials location...", "🔧");
+  
   // Ensure credentials directory exists
   try {
     await Deno.stat("cloudflared/credentials");
   } catch {
     await Deno.mkdir("cloudflared/credentials", { recursive: true });
+    logSuccess("Created credentials directory");
   }
   
   let movedTunnelId: string | null = null;
@@ -70,12 +75,14 @@ export async function ensureCredentialsInCorrectLocation(): Promise<string | nul
         const targetExists = await checkFileExists(targetPath);
         if (!targetExists) {
           await Deno.rename(sourcePath, targetPath);
+          logSuccess(`Moved ${entry.name} to credentials/`);
           movedTunnelId = entry.name.replace(".json", "");
         }
       }
     }
-  } catch {
-    // Could not read directory
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    logWarning(`Could not check for credentials files: ${errorMessage}`);
   }
   
   return movedTunnelId;
