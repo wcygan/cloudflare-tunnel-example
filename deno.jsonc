@@ -42,6 +42,14 @@
     "fmt": "cargo fmt",
     "fmt:check": "cargo fmt -- --check",
     
+    // Testing tasks
+    "test:unit": "cargo test",
+    "test:config": "deno test tests/config_validation_test.ts --allow-read",
+    "test:docker": "deno test tests/docker_integration_test.ts --allow-run --allow-net --allow-read --allow-env",
+    "test:integration": "deno run --allow-all scripts/run-integration-tests.ts",
+    "test:integration:e2e": "deno run --allow-all scripts/run-integration-tests.ts --e2e",
+    "test:all": "deno task test:integration",
+    
     // Utility tasks
     "clean": "cargo clean && docker compose down -v",
     "restart": "deno task down && deno task up"

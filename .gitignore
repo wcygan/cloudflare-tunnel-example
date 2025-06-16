@@ -30,3 +30,48 @@ cloudflared/*.pem
 # Logs
 *.log
 logs/
+
+# Test artifacts
+test-results-*.json
+coverage/
+*.profraw
+*.profdata
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+.cache/
+
+# Security - additional patterns
+*.key
+*.pem
+*.crt
+*.cer
+*.pfx
+*.p12
+private/
+secrets/
+credentials/
+
+# Docker
+.dockerignore.local
+
+# Deno
+.deno/
+
+# macOS
+.AppleDouble
+.LSOverride
+
+# Windows
+desktop.ini
+ehthumbs.db
+
+# Linux
+.directory
+
+# Backup files
+*.backup
+*.old
+*.orig

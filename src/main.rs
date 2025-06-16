@@ -19,17 +19,8 @@ async fn main() {
         )
         .init();
 
-    let app = Router::new()
-        .route("/", get(hello_world))
-        .route("/health", get(health_check))
-        .layer(
-            ServiceBuilder::new()
-                .layer(middleware::from_fn(security_headers))
-                .layer(SetResponseHeaderLayer::if_not_present(
-                    header::SERVER,
-                    HeaderValue::from_static("cloudflare-tunnel-example"),
-                )),
-        );
+    let app = create_app()
+;
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
     info!("Starting server on {}", addr);
@@ -52,6 +43,20 @@ async fn health_check() -> Json<Value> {
         "service": "cloudflare-tunnel-example",
         "timestamp": chrono::Utc::now().to_rfc3339()
     }))
+}
+
+pub fn create_app() -> Router {
+    Router::new()
+        .route("/", get(hello_world))
+        .route("/health", get(health_check))
+        .layer(
+            ServiceBuilder::new()
+                .layer(middleware::from_fn(security_headers))
+                .layer(SetResponseHeaderLayer::if_not_present(
+                    header::SERVER,
+                    HeaderValue::from_static("cloudflare-tunnel-example"),
+                )),
+        )
 }
 
 async fn security_headers(
@@ -89,4 +94,85 @@ async fn security_headers(
     );
 
     response
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::body::Body;
+    use axum::http::{Request, StatusCode};
+    use tower::util::ServiceExt;
+
+    #[tokio::test]
+    async fn test_root_endpoint() {
+        let app = create_app();
+
+        let response = app
+            .oneshot(Request::builder().uri("/").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let body_str = String::from_utf8(body.to_vec()).unwrap();
+        
+        assert!(body_str.contains("Hello World"));
+        assert!(body_str.contains("Cloudflare Tunnel Example"));
+    }
+
+    #[tokio::test]
+    async fn test_health_endpoint() {
+        let app = create_app();
+
+        let response = app
+            .oneshot(Request::builder().uri("/health").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        
+        assert_eq!(json["status"], "healthy");
+        assert_eq!(json["service"], "cloudflare-tunnel-example");
+        assert!(json["timestamp"].is_string());
+    }
+
+    #[tokio::test]
+    async fn test_security_headers() {
+        let app = create_app();
+
+        let response = app
+            .oneshot(Request::builder().uri("/").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+
+        let headers = response.headers();
+        
+        assert_eq!(headers.get("x-content-type-options").unwrap(), "nosniff");
+        assert_eq!(headers.get("x-frame-options").unwrap(), "DENY");
+        assert_eq!(headers.get("x-xss-protection").unwrap(), "1; mode=block");
+        assert!(headers.get("strict-transport-security").unwrap().to_str().unwrap().contains("max-age=31536000"));
+        assert!(headers.get("content-security-policy").is_some());
+        assert_eq!(headers.get("referrer-policy").unwrap(), "strict-origin-when-cross-origin");
+        assert_eq!(headers.get("permissions-policy").unwrap(), "geolocation=(), microphone=(), camera=()");
+    }
+
+    #[tokio::test]
+    async fn test_404_not_found() {
+        let app = create_app();
+
+        let response = app
+            .oneshot(Request::builder().uri("/nonexistent").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
 }
